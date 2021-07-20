@@ -177,16 +177,34 @@ func (c *Client) Stat(path string) (os.FileInfo, error) {
 	lines, err := c.controlStringList("MLST %s", path)
 	if err != nil {
 		if commandNotSupporterdError(err) {
+			pathSplitted := strings.Split(path, "/")
+			fileorfolderName := pathSplitted[len(pathSplitted)-1]
 			lines, err = c.dataStringList("LIST %s", path)
 			if err != nil {
 				return nil, err
 			}
 
-			if len(lines) != 1 {
-				return nil, ftpError{err: fmt.Errorf("unexpected LIST response: %v", lines)}
+			if len(lines) != 3 {
+				path = strings.Join(pathSplitted[:len(pathSplitted)-1], "/")
+				lines, err = c.dataStringList("LIST %s", path)
+				if err != nil {
+					return nil, err
+				}
 			}
 
-			return parseLIST(lines[0], c.config.ServerLocation, false)
+			for _, entry := range lines {
+				fileinfo, err := parseLIST(entry, c.config.ServerLocation, true)
+				if err != nil {
+					return nil, err
+				}
+				if fileinfo == nil {
+					continue
+				}
+				if fileinfo.Name() == fileorfolderName {
+					return fileinfo, nil
+				}
+			}
+			return nil, fmt.Errorf("%s not exists", path)
 		}
 		return nil, err
 	}
