@@ -7,6 +7,7 @@ package goftp
 import (
 	"bufio"
 	"fmt"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -183,15 +184,35 @@ func (c *Client) Stat(path string) (os.FileInfo, error) {
 			if err != nil {
 				return nil, err
 			}
-
-			if len(lines) != 3 {
-				path = strings.Join(pathSplitted[:len(pathSplitted)-1], "/")
-				lines, err = c.dataStringList("LIST %s", path)
-				if err != nil {
-					return nil, err
+			if len(lines) == 0 {
+				return nil, fmt.Errorf("%s not exists", path)
+			}
+			var files []fs.FileInfo
+			for _, entry := range lines {
+				fileinfo, err := parseLIST(entry, c.config.ServerLocation, true)
+				if err != nil || fileinfo == nil {
+					continue
 				}
+				files = append(files, fileinfo)
+			}
+			// If files has just one element and the name is the same as the asked, we have found an empty folder or a file
+			if len(files) == 1 && files[0].Name() == fileorfolderName {
+				return files[0], nil
 			}
 
+			// If none of the previous checks are true, we are asking a non-empty folder.
+			// We try firsly to read the parent folder to get the information
+			path = strings.Join(pathSplitted[:len(pathSplitted)-1], "/")
+			lines, err = c.dataStringList("LIST %s", path)
+			// if an error happend, that may mean that we dont have permissions to the parent folder.
+			// so, we make up the folder information with the minimal data that we have
+			if err != nil {
+				return &ftpFile{
+					name: fileorfolderName,
+					mode: os.ModeDir,
+				}, nil
+			}
+			// We will parse all the files/folders until we find the same folder name
 			for _, entry := range lines {
 				fileinfo, err := parseLIST(entry, c.config.ServerLocation, true)
 				if err != nil {
