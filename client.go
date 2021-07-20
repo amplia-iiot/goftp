@@ -158,16 +158,17 @@ type Config struct {
 // different goroutines, but once you are using all ConnectionsPerHost connections
 // per host, methods will block waiting for a free connection.
 type Client struct {
-	config          Config
-	hosts           []string
-	freeConnCh      chan *persistentConn
-	numConnsPerHost map[string]int
-	allCons         map[int]*persistentConn
-	connIdx         int
-	rawConnIdx      int
-	mu              sync.Mutex
-	t0              time.Time
-	closed          bool
+	config           Config
+	hosts            []string
+	freeConnCh       chan *persistentConn
+	numConnsPerHost  map[string]int
+	allCons          map[int]*persistentConn
+	connIdx          int
+	rawConnIdx       int
+	mu               sync.Mutex
+	t0               time.Time
+	closed           bool
+	mlsdNotSupported bool
 }
 
 // Construct and return a new client Conn, setting default config
