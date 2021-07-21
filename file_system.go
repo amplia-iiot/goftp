@@ -185,7 +185,7 @@ func (c *Client) Stat(path string) (os.FileInfo, error) {
 				return nil, err
 			}
 			if len(lines) == 0 {
-				return nil, fmt.Errorf("%s not exists", path)
+				return nil, os.ErrNotExist
 			}
 			var files []fs.FileInfo
 			for _, entry := range lines {
@@ -228,7 +228,7 @@ func (c *Client) Stat(path string) (os.FileInfo, error) {
 					return fileinfo, nil
 				}
 			}
-			return nil, fmt.Errorf("%s not exists", path)
+			return nil, os.ErrNotExist
 		}
 		return nil, err
 	}
