@@ -203,6 +203,9 @@ func (c *Client) Stat(path string) (os.FileInfo, error) {
 			// If none of the previous checks are true, we are asking a non-empty folder.
 			// We try firsly to read the parent folder to get the information
 			path = strings.Join(pathSplitted[:len(pathSplitted)-1], "/")
+			if path == "" {
+				path = "/"
+			}
 			lines, err = c.dataStringList("LIST %s", path)
 			// if an error happend, that may mean that we dont have permissions to the parent folder.
 			// so, we make up the folder information with the minimal data that we have
